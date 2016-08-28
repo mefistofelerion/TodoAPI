@@ -54,12 +54,40 @@ app.delete('/todo/:id', function(req,res){
 	var paramId = parseInt(req.params.id, 10);
 	var matchedTodo = _.findWhere(todos,{id: paramId});
 	if(typeof matchedTodo !== 'undefined'){
-		todos = _.without(todos, matchedTodo);
+			todos = _.without(todos, matchedTodo);
 		res.json(matchedTodo);
 	}else{
-		console.log('no todo task was found');
-		res.status('404').send();
+		res.status('404').send('No todo was found with the id ' + paramId);
 	}
+});
+
+app.put('/todo/:id', function(req, res){
+	var body = req.body;
+	var paramId = parseInt(req.params.id, 10);
+	var matchedTodo = _.findWhere(todos,{id: paramId});
+
+	if(!matchedTodo){
+		return res.status('404').send();
+	}
+
+	var todo = _.pick(body, 'description', 'completed');
+	var validAttributes = {};
+
+	if(body.hasOwnProperty('completed') && _.isBoolean(body.completed)){
+		validAttributes.completed = body.completed;
+	}else if(body.hasOwnProperty('completed')){
+		return res.status('400').send();
+	}
+	
+	if(body.hasOwnProperty('description') && _.isString(body.description) && body.description.trim().length > 0){
+		validAttributes.description = body.description;
+	}else if(body.hasOwnProperty('description')){
+		return res.status('400').send();
+	}
+
+	_.extend(matchedTodo, validAttributes);
+	res.send('todo was updated');
+
 });
 
 app.listen	(PORT, function(){
