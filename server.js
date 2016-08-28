@@ -1,6 +1,7 @@
 var express = require('express');
 var bodyParser = require('body-parser');
 var app = express();
+var _ = require('underscore');
 var PORT = process.env.PORT || 3000;
 var todoNextId = 1;
 var todos = [];
@@ -20,32 +21,31 @@ app.get('/todos', function(req, res){
 });
 
 app.get('/todo/:id', function(req, res){
-	var todoFetched;
-	if(typeof todos !== 'undefined' && todos.length > 0){
-		todos.forEach(function(todo){
-			var paramId = parseInt(req.params.id, 10);
-			if(todo.id == paramId){
-				todoFetched = todo;
-			}
-		});
-		if(typeof todoFetched !== 'undefined'){
-			res.json(todoFetched);	
-		}
-		else{
-			res.send('todo was not found with the given ID');
-		}
+	var paramId = parseInt(req.params.id, 10);
+	var matchedTodo = _.findWhere(todos,{id: paramId});
+	if(matchedTodo){
+		res.json(matchedTodo);
+	}else{
+		res.status('404').send();
 	}
 });
 
 app.post('/todos', function(req, res){
 	var body = req.body;
 
-	if(typeof body !== 'undefined'){
-		body.id = todoNextId++;
-		todos.push(body);
+	if(!_.isBoolean(body.completed) || !_.isString(body.description) || body.description.trim().length === 0	){
+		return res.status('400').send();
+	}
+
+	var todo = _.pick(body, 'description', 'completed');
+
+	if(typeof todo !== 'undefined'){
+		todo.id = todoNextId++;
+		todo.description = todo.description.trim();
+		todos.push(todo);
 		res.json('Todo task added');
 	}else{
-		res.send('empty json sent, nothing was saved');
+		res.status('400').send('empty json sent, nothing was saved');
 	}
 	
 });
