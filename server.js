@@ -8,7 +8,7 @@ var todos = [{
 	},
 	{
 	id: 2,
-	description: 'Complete Angular course',
+	description: 'Complete Angular course!',
 	completed: false
 	},
 	{
