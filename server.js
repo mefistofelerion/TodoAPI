@@ -50,6 +50,18 @@ app.post('/todos', function(req, res){
 	
 });
 
+app.delete('/todo/:id', function(req,res){
+	var paramId = parseInt(req.params.id, 10);
+	var matchedTodo = _.findWhere(todos,{id: paramId});
+	if(typeof matchedTodo !== 'undefined'){
+		todos = _.without(todos, matchedTodo);
+		res.json(matchedTodo);
+	}else{
+		console.log('no todo task was found');
+		res.status('404').send();
+	}
+});
+
 app.listen	(PORT, function(){
 	console.log('Server started on port ' + PORT);
 });
