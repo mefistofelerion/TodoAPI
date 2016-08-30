@@ -2,6 +2,7 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var app = express();
 var _ = require('underscore');
+var db = require('./db.js');
 var PORT = process.env.PORT || 3000;
 var todoNextId = 1;
 var todos = [];
@@ -52,24 +53,41 @@ app.get('/todo/:id', function(req, res) {
 });
 
 app.post('/todos', function(req, res) {
-	var body = req.body;
-
-	if (!_.isBoolean(body.completed) || !_.isString(body.description) || body.description.trim().length === 0) {
-		return res.status('400').send();
-	}
-
-	var todo = _.pick(body, 'description', 'completed');
-
-	if (typeof todo !== 'undefined') {
-		todo.id = todoNextId++;
-		todo.description = todo.description.trim();
-		todos.push(todo);
-		res.json('Todo task added');
+	var body = _.pick(req.body, 'description', 'completed');
+	if (body.description.trim().length > 0 && _.isBoolean(body.completed)) {
+		db.todo.create({
+			description: body.description,
+			completed: body.completed
+		}).then(function(todo) {
+			res.json(todo);
+		}, function(e) {
+			res.status('400').json(e);
+		}).catch(function(error){
+			console.log(error);
+		});
 	} else {
-		res.status('400').send('empty json sent, nothing was saved');
+		res.status('400').send();
 	}
-
 });
+
+
+
+// if (!_.isBoolean(body.completed) || !_.isString(body.description) || body.description.trim().length === 0) {
+// 	return res.status('400').send();
+// }
+
+// var todo = _.pick(body, 'description', 'completed');
+
+// if (typeof todo !== 'undefined') {
+// 	todo.id = todoNextId++;
+// 	todo.description = todo.description.trim();
+// 	todos.push(todo);
+// 	res.json('Todo task added');
+// } else {
+// 	res.status('400').send('empty json sent, nothing was saved');
+// }
+
+
 
 app.delete('/todo/:id', function(req, res) {
 	var paramId = parseInt(req.params.id, 10);
@@ -115,6 +133,8 @@ app.put('/todo/:id', function(req, res) {
 
 });
 
-app.listen(PORT, function() {
-	console.log('Server started on port ' + PORT);
+db.sequelize.sync().then(function() {
+	app.listen(PORT, function() {
+		console.log('Server started on port ' + PORT);
+	});
 });
