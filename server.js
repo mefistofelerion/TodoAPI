@@ -125,6 +125,21 @@ app.put('/todo/:id', function(req, res) {
 	});
 });
 
+app.post('/users', function(req, res){
+	var body = _.pick(req.body, 'email', 'password')
+	db.user.create({
+		email: body.email,
+		password: body.password
+	}).then(function(user){
+		res.json(user.toJSON())
+	}, function(error){
+		res.status('400').send(error);
+	}).catch(function(e){
+		res.status('500').json(e);
+	});
+})
+
+
 db.sequelize.sync().then(function() {
 	app.listen(PORT, function() {
 		console.log('Server started on port ' + PORT);
