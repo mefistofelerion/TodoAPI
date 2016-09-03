@@ -51,10 +51,12 @@ app.get('/todos', middleware.requireAuthentication, function(req, res) {
 app.get('/todo/:id', middleware.requireAuthentication, function(req, res) {
 	var paramId = parseInt(req.params.id, 10);
 
-	db.todo.findOne({where: {
-		id: paramId,
-		userId: req.user.get('id')
-	}}).then(function(todo) {
+	db.todo.findOne({
+		where: {
+			id: paramId,
+			userId: req.user.get('id')
+		}
+	}).then(function(todo) {
 		if (todo) {
 			res.json(todo);
 		} else {
@@ -67,13 +69,13 @@ app.get('/todo/:id', middleware.requireAuthentication, function(req, res) {
 
 app.post('/todos', middleware.requireAuthentication, function(req, res) {
 	var body = _.pick(req.body, 'description', 'completed');
-	
+
 	if (body.description.trim().length > 0 && _.isBoolean(body.completed)) {
 		db.todo.create(body).then(function(todo) {
-			
-			req.user.addTodo(todo).then(function(){
+
+			req.user.addTodo(todo).then(function() {
 				return todo.reload();
-			}).then(function(todo){
+			}).then(function(todo) {
 				res.json(todo.toJSON());
 			})
 		}, function(e) {
@@ -109,7 +111,7 @@ app.delete('/todo/:id', middleware.requireAuthentication, function(req, res) {
 
 });
 
-app.put('/todo/:id', middleware.requireAuthentication,  function(req, res) {
+app.put('/todo/:id', middleware.requireAuthentication, function(req, res) {
 	var body = req.body;
 	var todoId = parseInt(req.params.id, 10);
 	var attributes = {};
@@ -123,10 +125,12 @@ app.put('/todo/:id', middleware.requireAuthentication,  function(req, res) {
 		attributes.description = body.description;
 	}
 
-	db.todo.findOne({where: {
-		id: todoId,
-		userId: req.user.get('id')
-	}}).then(function(todo) {
+	db.todo.findOne({
+		where: {
+			id: todoId,
+			userId: req.user.get('id')
+		}
+	}).then(function(todo) {
 		if (todo) {
 			todo.update(attributes).then(function(todo) {
 				res.json(todo.toJSON());
@@ -159,20 +163,30 @@ app.post('/users', function(req, res) {
 // POST /users/login
 app.post('/users/login', function(req, res) {
 	var body = _.pick(req.body, 'email', 'password');
+	var userInstance;
 
 
 	db.user.authenticate(body).then(function(user) {
-		var token = user.generateToken('authentication');
-		if (token) {
-			res.header('Auth', token).json(user.toPublicJSON());
-		} else {
-			return res.status('401').send();
-		}
-	}, function(error) {
-		res.status('401').send();
-	})
+			var token = user.generateToken('authentication');
+			userInstance = user;
 
+			return db.token.create({
+				token: token
+			});
+		}).then(function(tokenInstance) {
+			res.header('Auth', tokenInstance.get('token')).json(userInstance.toPublicJSON());
+		})
+		.catch(function() {
+			res.status('401').send();
+		});
+});
 
+app.delete('/users/login', middleware.requireAuthentication, function(req, res){
+	req.token.destroy().then(function(){
+		res.status('204').send();
+	}).catch(function(){
+		res.status('500').send();
+	});
 });
 
 db.sequelize.sync({
