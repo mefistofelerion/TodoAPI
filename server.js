@@ -62,16 +62,20 @@ app.get('/todo/:id', middleware.requireAuthentication, function(req, res) {
 
 app.post('/todos', middleware.requireAuthentication, function(req, res) {
 	var body = _.pick(req.body, 'description', 'completed');
+	
 	if (body.description.trim().length > 0 && _.isBoolean(body.completed)) {
-		db.todo.create({
-			description: body.description,
-			completed: body.completed
-		}).then(function(todo) {
-			res.json(todo);
+		db.todo.create(body).then(function(todo) {
+			
+			req.user.addTodo(todo).then(function(){
+				return todo.reload();
+			}).then(function(todo){
+				res.json(todo.toJSON());
+			})
 		}, function(e) {
 			res.status('400').json(e);
 		}).catch(function(error) {
 			console.log(error);
+			res.status('500').json(error);
 		});
 	} else {
 		res.status('400').send();
